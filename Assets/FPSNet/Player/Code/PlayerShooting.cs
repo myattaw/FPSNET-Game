@@ -1,59 +1,54 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class PlayerShooting : MonoBehaviour
+public class PlayerShooting : NetworkBehaviour
 {
     public Gun gun;
     private bool isFiring = false;
 
-    public void onShoot()
+    public void OnShoot()
     {
+        if (!IsOwner) return; // Only the local player can fire
         isFiring = true;
-        Debug.Log("Firing");
     }
 
-    public void onShootRelease()
+    public void OnShootRelease()
     {
+        if (!IsOwner) return;
         isFiring = false;
     }
 
-    public void onReload()
+    public void OnReload()
     {
+        if (!IsOwner) return;
+
         if (gun != null)
         {
             gun.TryReload();
         }
     }
 
-
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        // Poll input as a fallback (works with the old Input system)
+        if (!IsOwner) return; // <- this is CRITICAL
+
+        // Poll input (client side only)
         if (Input.GetButtonDown("Fire1"))
         {
-            onShoot();
+            OnShoot();
         }
         if (Input.GetButtonUp("Fire1"))
         {
-            onShootRelease();
+            OnShootRelease();
         }
         if (Input.GetKeyDown(KeyCode.R))
         {
-            onReload();
+            OnReload();
         }
 
-        // Show whether we have a gun assigned
-        if (isFiring)
+        if (isFiring && gun != null)
         {
-            if (gun != null)
-            {
-                gun.Shoot();
-            }
-            else
-            {
-                Debug.Log("Attempted to fire but gun is null");
-            }
+            gun.Shoot(); // This internally calls a ServerRpc to spawn the bullet
         }
     }
-    
 }

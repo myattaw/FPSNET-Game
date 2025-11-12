@@ -1,7 +1,8 @@
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
-public class Gun : MonoBehaviour
+public class Gun : NetworkBehaviour
 {
     [Header("Gun Settings")]
     public float reloadTime = 1f;
@@ -9,20 +10,21 @@ public class Gun : MonoBehaviour
     public int magSize = 20;
 
     [Header("References")]
-    public GameObject bullet;
+    public GameObject bulletPrefab;
     public Transform bulletSpawn;
     public Transform magazine; // Assign your "Magazine" child in Inspector
+    public Camera playerCamera;
 
     private int currentAmmo;
     private bool isReloading = false;
     private float nextTimeToFire = 0f;
 
+    // --- Gun rotation animation ---
     private Quaternion originalRotation;
     private Vector3 originalPosition;
-
     private Vector3 reloadRotationOffset = new Vector3(60f, 50f, 50f);
 
-    // Magazine animation settings
+    // --- Magazine animation ---
     private Vector3 magOriginalPos;
     private Quaternion magOriginalRot;
     private Vector3 magDropOffset = new Vector3(0f, -0.3f, 0f); // how far it drops
@@ -46,8 +48,7 @@ public class Gun : MonoBehaviour
 
     public void Shoot()
     {
-        if (isReloading)
-            return;
+        if (!IsOwner || isReloading) return;
 
         if (currentAmmo <= 0)
         {
@@ -55,13 +56,53 @@ public class Gun : MonoBehaviour
             return;
         }
 
-        if (Time.time >= nextTimeToFire)
+        if (Time.time < nextTimeToFire) return;
+
+        nextTimeToFire = Time.time + fireRate;
+        currentAmmo--;
+
+        // Raycast from center of screen to find target point
+        Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        Vector3 targetPoint;
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
+            targetPoint = hit.point;
+        else
+            targetPoint = ray.GetPoint(1000f);
+
+        // Get the direction from barrel to that target
+        Vector3 direction = (targetPoint - bulletSpawn.position).normalized;
+
+        // Call server to spawn bullet in that direction
+        SpawnBulletServerRpc(bulletSpawn.position, direction);
+    }
+
+
+    [ServerRpc]
+    private void SpawnBulletServerRpc(Vector3 spawnPos, Vector3 forwardDir)
+    {
+        // Create bullet facing the correct direction
+        Quaternion rotation = Quaternion.LookRotation(forwardDir, Vector3.up);
+        GameObject bulletObj = Instantiate(bulletPrefab, spawnPos, rotation);
+
+        // Spawn it over the network
+        NetworkObject netObj = bulletObj.GetComponent<NetworkObject>();
+        netObj.Spawn(true);
+
+        // --- Access the Bullet script ---
+        if (bulletObj.TryGetComponent(out Bullet bulletScript))
         {
-            nextTimeToFire = Time.time + fireRate;
-            Instantiate(bullet, bulletSpawn.position, bulletSpawn.rotation);
-            currentAmmo--;
+            float bulletSpeed = bulletScript.speed;
+            if (bulletObj.TryGetComponent(out Rigidbody rb))
+            {
+                rb.linearVelocity = forwardDir * bulletSpeed;
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Spawned bullet prefab missing Bullet script!");
         }
     }
+    
 
     private IEnumerator Reload()
     {
@@ -91,11 +132,11 @@ public class Gun : MonoBehaviour
                 yield return null;
             }
 
-            // Simulate removing the mag
+            // Simulate removing mag
             magazine.gameObject.SetActive(false);
             yield return new WaitForSeconds(0.2f);
 
-            // Simulate inserting a new mag
+            // Simulate inserting mag
             magazine.gameObject.SetActive(true);
             elapsedTime = 0f;
             while (elapsedTime < magAnimTime)
@@ -108,7 +149,7 @@ public class Gun : MonoBehaviour
             magazine.localPosition = magOriginalPos;
         }
 
-        // --- Rotate gun back to normal ---
+        // --- Rotate gun back up ---
         elapsedTime = 0f;
         while (elapsedTime < halfReloadTime)
         {

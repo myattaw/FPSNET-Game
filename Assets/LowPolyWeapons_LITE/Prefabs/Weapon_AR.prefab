@@ -161,12 +161,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be6b99c8dc7b76144a69c3c9f02f1f04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   reloadTime: 1
-  fireRate: 0.15
+  fireRate: 0.1
   magSize: 20
-  bullet: {fileID: 6966937615583439503, guid: 95240450b2d45064390dcccad932f5fe, type: 3}
+  bulletPrefab: {fileID: 0}
   bulletSpawn: {fileID: 5481605106499093733}
-  currentAmmo: 0
 --- !u!1 &5836183803064680627
 GameObject:
   m_ObjectHideFlags: 0
@@ -180,7 +180,7 @@ GameObject:
   - component: {fileID: 930050485265836895}
   - component: {fileID: 7276040947980279509}
   m_Layer: 0
-  m_Name: Weapon_02_2
+  m_Name: Magazine
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
