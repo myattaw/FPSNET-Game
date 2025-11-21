@@ -110,7 +110,7 @@ GameObject:
   - component: {fileID: 1451028212893919180}
   - component: {fileID: 3850209128227458199}
   - component: {fileID: 7304504459331495520}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: NewPlayer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -401,11 +401,31 @@ PrefabInstance:
     - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
       propertyPath: bulletPrefab
       value: 
-      objectReference: {fileID: 6966937615583439503, guid: 95240450b2d45064390dcccad932f5fe, type: 3}
+      objectReference: {fileID: 6342515338664354458, guid: dedcc8f881cb15640a5f71f8236e99f9, type: 3}
+    - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: casingPrefab
+      value: 
+      objectReference: {fileID: 5906908449201331918, guid: 03299031b3d86b6468cce010fe90969a, type: 3}
     - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
       propertyPath: playerCamera
       value: 
       objectReference: {fileID: 360486412207283740}
+    - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: casingEjectPoint
+      value: 
+      objectReference: {fileID: 8596073971891943468}
+    - target: {fileID: 3587463875113541254, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.166
+      objectReference: {fileID: 0}
+    - target: {fileID: 3587463875113541254, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.103
+      objectReference: {fileID: 0}
+    - target: {fileID: 3587463875113541254, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.105
+      objectReference: {fileID: 0}
     - target: {fileID: 5481605106499093733, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.698
@@ -511,3 +531,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be6b99c8dc7b76144a69c3c9f02f1f04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!4 &8596073971891943468 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3587463875113541254, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+  m_PrefabInstance: {fileID: 5080721018208249514}
+  m_PrefabAsset: {fileID: 0}

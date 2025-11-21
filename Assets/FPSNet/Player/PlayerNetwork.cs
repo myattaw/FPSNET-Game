@@ -37,6 +37,11 @@ namespace UnityStandardAssets.Characters.FirstPerson
         private Animator animator;
         private NetworkAnimator networkAnimator;
 
+        [Header("Health")]
+        public int maxHealth = 100;
+        // Networked health value (clients will see updates)
+        public NetworkVariable<int> Health = new NetworkVariable<int>(100);
+
         public override void OnNetworkSpawn()
         {
             // Assign animator and network animator immediately
@@ -74,6 +79,45 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 if (listener != null)
                     listener.enabled = true;
             }
+
+            // Initialize health on server and subscribe to changes
+            if (IsServer)
+            {
+                Health.Value = maxHealth;
+            }
+            Health.OnValueChanged += OnHealthChanged;
+        }
+
+        private void OnHealthChanged(int oldValue, int newValue)
+        {
+            // Simple client-side notification - replace with UI update later
+            Debug.Log($"Player {OwnerClientId} health changed: {oldValue} -> {newValue}");
+        }
+
+        // Called by server-side code (e.g. Bullet on server) to apply damage
+        public void ApplyDamage(int amount)
+        {
+            if (!IsServer) return; // must be executed on server
+
+            int newHealth = Mathf.Max(0, Health.Value - amount);
+            Health.Value = newHealth;
+
+            if (newHealth <= 0)
+            {
+                HandleDeath();
+            }
+        }
+
+        private void HandleDeath()
+        {
+            Debug.Log($"Player {OwnerClientId} died (server).");
+            
+
+            // Minimal death handling: disable movement for now.
+            // You can expand to respawn, ragdoll, etc.
+            // var controller = GetComponent<CharacterController>();
+            // if (controller != null) controller.enabled = false;
+            // Optionally disable visuals/collisions or schedule respawn.
         }
 
         private void Start()
@@ -115,6 +159,10 @@ namespace UnityStandardAssets.Characters.FirstPerson
         {
             if (!IsOwner) return;
 
+            // Don't run movement if controller is missing or disabled (prevents Move on inactive controller)
+            if (m_CharacterController == null || !m_CharacterController.enabled)
+                return;
+            
             float speed;
             GetInput(out speed);
 
@@ -148,11 +196,12 @@ namespace UnityStandardAssets.Characters.FirstPerson
             UpdateNetworkAnimation();
 
             m_CollisionFlags = m_CharacterController.Move(m_MoveDir * Time.fixedDeltaTime);
+
             m_MouseLook.UpdateCursorLock();
             
-            if (headTransform != null)
+            // Only sync head rotation if both assigned
+            if (headTransform != null && headNetworkTransform != null)
                 headNetworkTransform.transform.rotation = headTransform.rotation;
-
         }
 
         private void UpdateNetworkAnimation()

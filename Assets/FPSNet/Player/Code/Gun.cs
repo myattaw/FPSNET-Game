@@ -11,7 +11,10 @@ public class Gun : NetworkBehaviour
 
     [Header("References")]
     public GameObject bulletPrefab;
+    public GameObject casingPrefab;
     public Transform bulletSpawn;
+    public Transform casingEjectPoint;
+
     public Transform magazine; // Assign your "Magazine" child in Inspector
     public Camera playerCamera;
 
@@ -72,6 +75,12 @@ public class Gun : NetworkBehaviour
         // Get the direction from barrel to that target
         Vector3 direction = (targetPoint - bulletSpawn.position).normalized;
 
+        // Eject casing locally for the owner (visual only)
+        if (casingPrefab != null && casingEjectPoint != null)
+        {
+            EjectCasingLocal();
+        }
+        
         // Call server to spawn bullet in that direction
         SpawnBulletServerRpc(bulletSpawn.position, direction);
     }
@@ -94,7 +103,7 @@ public class Gun : NetworkBehaviour
             float bulletSpeed = bulletScript.speed;
             if (bulletObj.TryGetComponent(out Rigidbody rb))
             {
-                rb.linearVelocity = forwardDir * bulletSpeed;
+                rb.linearVelocity = forwardDir * bulletSpeed; // fixed property
             }
         }
         else
@@ -103,6 +112,25 @@ public class Gun : NetworkBehaviour
         }
     }
     
+    private void EjectCasingLocal()
+    {
+        GameObject casing = Instantiate(casingPrefab, casingEjectPoint.position, casingEjectPoint.rotation);
+        if (casing.TryGetComponent(out Rigidbody rb))
+        {
+            Vector3 ejectDir = (casingEjectPoint.right * 0.8f) + (casingEjectPoint.up * 0.4f);
+            rb.linearVelocity = ejectDir.normalized * Random.Range(2f, 6f);
+
+            rb.angularVelocity = new Vector3(
+                Random.Range(-20f, 20f),
+                Random.Range(-10f, 10f),
+                Random.Range(-15f, 15f)
+            );
+
+            rb.transform.rotation *= Quaternion.Euler(Random.Range(-10f, 10f), Random.Range(0f, 360f), Random.Range(-10f, 10f));
+        }
+
+        Destroy(casing, 3f); // cleanup
+    }
 
     private IEnumerator Reload()
     {
