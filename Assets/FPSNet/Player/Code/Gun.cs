@@ -40,6 +40,7 @@ public class Gun : NetworkBehaviour
     void Start()
     {
         currentAmmo = magSize;
+        UIManager.instance.ammoText.text = "Ammo: " + currentAmmo;
 
         originalRotation = transform.localRotation;
         originalPosition = transform.localPosition;
@@ -75,7 +76,8 @@ public class Gun : NetworkBehaviour
 
         nextTimeToFire = Time.time + fireRate;
         currentAmmo--;
-
+        UIManager.instance.ammoText.text = "Ammo: " + currentAmmo;
+        
         // Raycast for bullet direction
         Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
         Vector3 targetPoint;
@@ -235,6 +237,7 @@ public class Gun : NetworkBehaviour
         }
 
         currentAmmo = magSize;
+        UIManager.instance.ammoText.text = "Ammo: " + currentAmmo;
         isReloading = false;
     }
 

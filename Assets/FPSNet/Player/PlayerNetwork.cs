@@ -104,18 +104,36 @@ namespace UnityStandardAssets.Characters.FirstPerson
             {
                 Health.Value = maxHealth;
             }
-            Health.OnValueChanged += OnHealthChanged;
+
+            // subscribe safely
+            if (Health != null)
+                Health.OnValueChanged += OnHealthChanged;
+
+            // immediately update owner UI so it shows correct initial value
+            if (IsOwner && UIManager.instance != null)
+            {
+                UIManager.instance.UpdateHealthBar(Health != null ? Health.Value : maxHealth);
+            }
         }
 
         private void OnDestroy()
         {
-            Health.OnValueChanged -= OnHealthChanged;
+            if (Health != null)
+                Health.OnValueChanged -= OnHealthChanged;
         }
 
         private void OnHealthChanged(int oldValue, int newValue)
         {
             // Simple client-side notification - replace with UI update later
             Debug.Log($"Player {OwnerClientId} health changed: {oldValue} -> {newValue}");
+
+            // Only the owning client should update its HUD
+            if (IsOwner && UIManager.instance != null)
+            {
+                UIManager.instance.UpdateHealthBar(newValue);
+                if (newValue < oldValue)
+                    UIManager.instance.InstantiateHitUI();
+            }
         }
 
         // Called by server-side code (e.g. Bullet on server) to apply damage
