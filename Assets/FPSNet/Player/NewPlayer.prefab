@@ -110,6 +110,7 @@ GameObject:
   - component: {fileID: 1451028212893919180}
   - component: {fileID: 3850209128227458199}
   - component: {fileID: 7304504459331495520}
+  - component: {fileID: 4478985781184142548}
   m_Layer: 6
   m_Name: NewPlayer
   m_TagString: Untagged
@@ -206,7 +207,7 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
-  m_Height: 2
+  m_Height: 3.5
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!143 &3793181715041397884
@@ -334,8 +335,17 @@ MonoBehaviour:
     smooth: 0
     smoothTime: 5
     lockCursor: 1
+  m_StepInterval: 2
   headNetworkTransform: {fileID: 0}
   headTransform: {fileID: 0}
+  m_FootstepSounds:
+  - {fileID: 8300000, guid: 42e65e088b3f4374e851b8dbd38f3df9, type: 3}
+  - {fileID: 8300000, guid: 8bc94ec6ed537e743b481638bdcd503d, type: 3}
+  m_JumpSound: {fileID: 8300000, guid: 5897aeed9b676024fbb8c694b421a861, type: 3}
+  m_LandSound: {fileID: 8300000, guid: 3b09d59f4499d45428baa7a21e954296, type: 3}
+  maxHealth: 100
+  Health:
+    m_InternalValue: 100
 --- !u!114 &7304504459331495520
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -350,6 +360,103 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   gun: {fileID: 6707869190448665486}
+--- !u!82 &4478985781184142548
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6282358907116969025}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &8866661770560766222
 GameObject:
   m_ObjectHideFlags: 0
@@ -399,6 +506,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2099674537814230765}
     - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: reloadSound
+      value: 
+      objectReference: {fileID: 8300000, guid: 1fe5c2e1733f354428fe88c1a7cbafe4, type: 3}
+    - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
       propertyPath: bulletPrefab
       value: 
       objectReference: {fileID: 6342515338664354458, guid: dedcc8f881cb15640a5f71f8236e99f9, type: 3}
@@ -407,9 +518,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5906908449201331918, guid: 03299031b3d86b6468cce010fe90969a, type: 3}
     - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: gunshotSound
+      value: 
+      objectReference: {fileID: 8300000, guid: 0addcc409a57b4a43b86a3d2310ac5b4, type: 3}
+    - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
       propertyPath: playerCamera
       value: 
       objectReference: {fileID: 360486412207283740}
+    - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: gunAudioSource
+      value: 
+      objectReference: {fileID: 4478985781184142548}
     - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
       propertyPath: casingEjectPoint
       value: 

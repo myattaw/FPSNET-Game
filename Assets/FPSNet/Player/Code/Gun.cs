@@ -15,26 +15,32 @@ public class Gun : NetworkBehaviour
     public Transform bulletSpawn;
     public Transform casingEjectPoint;
 
-    public Transform magazine; // Assign your "Magazine" child in Inspector
+    public Transform magazine; // Assign in inspector
     public Camera playerCamera;
+
+    [Header("Audio")]
+    public AudioSource gunAudioSource;    // Assign on gun model
+    public AudioClip gunshotSound;
+    public AudioClip reloadSound;
 
     private int currentAmmo;
     private bool isReloading = false;
     private float nextTimeToFire = 0f;
 
-    // --- Gun rotation animation ---
+    // Gun animation
     private Quaternion originalRotation;
     private Vector3 originalPosition;
     private Vector3 reloadRotationOffset = new Vector3(60f, 50f, 50f);
 
-    // --- Magazine animation ---
+    // Magazine animation
     private Vector3 magOriginalPos;
     private Quaternion magOriginalRot;
-    private Vector3 magDropOffset = new Vector3(0f, -0.3f, 0f); // how far it drops
+    private Vector3 magDropOffset = new Vector3(0f, -0.3f, 0f);
 
     void Start()
     {
         currentAmmo = magSize;
+
         originalRotation = transform.localRotation;
         originalPosition = transform.localPosition;
 
@@ -45,7 +51,13 @@ public class Gun : NetworkBehaviour
         }
         else
         {
-            Debug.LogWarning("Magazine reference not assigned in inspector!");
+            Debug.LogWarning("Magazine reference not assigned!");
+        }
+
+        // If remote player: force 3D gunshot audio
+        if (!IsOwner && gunAudioSource != null)
+        {
+            gunAudioSource.spatialBlend = 1f; // 3D
         }
     }
 
@@ -55,7 +67,7 @@ public class Gun : NetworkBehaviour
 
         if (currentAmmo <= 0)
         {
-            StartCoroutine(Reload());
+            StartCoroutine(ReloadRoutine());
             return;
         }
 
@@ -64,57 +76,82 @@ public class Gun : NetworkBehaviour
         nextTimeToFire = Time.time + fireRate;
         currentAmmo--;
 
-        // Raycast from center of screen to find target point
+        // Raycast for bullet direction
         Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
         Vector3 targetPoint;
+
         if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
             targetPoint = hit.point;
         else
             targetPoint = ray.GetPoint(1000f);
 
-        // Get the direction from barrel to that target
         Vector3 direction = (targetPoint - bulletSpawn.position).normalized;
 
-        // Eject casing locally for the owner (visual only)
-        if (casingPrefab != null && casingEjectPoint != null)
-        {
+        // Local-only casing effect
+        if (casingPrefab && casingEjectPoint)
             EjectCasingLocal();
-        }
-        
-        // Call server to spawn bullet in that direction
+
+        // Server spawns bullet
         SpawnBulletServerRpc(bulletSpawn.position, direction);
+
+        // ---- AUDIO: Tell server we're shooting ----
+        if (IsServer)
+            PlayShootSoundClientRpc();
+        else
+            PlayShootSoundServerRpc();
     }
 
+    // ------------------- AUDIO RPCs --------------------
+
+    [ServerRpc]
+    private void PlayShootSoundServerRpc(ServerRpcParams rpcParams = default)
+    {
+        PlayShootSoundClientRpc();
+    }
+
+    [ClientRpc]
+    private void PlayShootSoundClientRpc()
+    {
+        if (gunAudioSource != null && gunshotSound != null)
+            gunAudioSource.PlayOneShot(gunshotSound, 0.5f);
+    }
+
+    [ServerRpc]
+    private void PlayReloadSoundServerRpc(ServerRpcParams rpcParams = default)
+    {
+        PlayReloadSoundClientRpc();
+    }
+
+    [ClientRpc]
+    private void PlayReloadSoundClientRpc()
+    {
+        if (gunAudioSource != null && reloadSound != null)
+            gunAudioSource.PlayOneShot(reloadSound);
+    }
+
+    // --------------------------------------------------
 
     [ServerRpc]
     private void SpawnBulletServerRpc(Vector3 spawnPos, Vector3 forwardDir)
     {
-        // Create bullet facing the correct direction
         Quaternion rotation = Quaternion.LookRotation(forwardDir, Vector3.up);
         GameObject bulletObj = Instantiate(bulletPrefab, spawnPos, rotation);
 
-        // Spawn it over the network
         NetworkObject netObj = bulletObj.GetComponent<NetworkObject>();
         netObj.Spawn(true);
 
-        // --- Access the Bullet script ---
+        // Set bullet velocity
         if (bulletObj.TryGetComponent(out Bullet bulletScript))
         {
-            float bulletSpeed = bulletScript.speed;
             if (bulletObj.TryGetComponent(out Rigidbody rb))
-            {
-                rb.linearVelocity = forwardDir * bulletSpeed; // fixed property
-            }
-        }
-        else
-        {
-            Debug.LogWarning("Spawned bullet prefab missing Bullet script!");
+                rb.linearVelocity = forwardDir * bulletScript.speed;
         }
     }
-    
+
     private void EjectCasingLocal()
     {
         GameObject casing = Instantiate(casingPrefab, casingEjectPoint.position, casingEjectPoint.rotation);
+
         if (casing.TryGetComponent(out Rigidbody rb))
         {
             Vector3 ejectDir = (casingEjectPoint.right * 0.8f) + (casingEjectPoint.up * 0.4f);
@@ -126,63 +163,74 @@ public class Gun : NetworkBehaviour
                 Random.Range(-15f, 15f)
             );
 
-            rb.transform.rotation *= Quaternion.Euler(Random.Range(-10f, 10f), Random.Range(0f, 360f), Random.Range(-10f, 10f));
+            rb.transform.rotation *= Quaternion.Euler(
+                Random.Range(-10f, 10f),
+                Random.Range(0f, 360f),
+                Random.Range(-10f, 10f)
+            );
         }
 
-        Destroy(casing, 3f); // cleanup
+        Destroy(casing, 3f);
     }
 
-    private IEnumerator Reload()
+    private IEnumerator ReloadRoutine()
     {
         isReloading = true;
 
-        Quaternion targetRotation = Quaternion.Euler(originalRotation.eulerAngles + reloadRotationOffset);
-        float halfReloadTime = reloadTime / 2f;
+        // ---- AUDIO: server tells everyone to play sound ----
+        if (IsServer)
+            PlayReloadSoundClientRpc();
+        else
+            PlayReloadSoundServerRpc();
 
-        // --- Rotate gun downward ---
-        float elapsedTime = 0f;
-        while (elapsedTime < halfReloadTime)
+        // Gun down animation
+        Quaternion targetRot = Quaternion.Euler(originalRotation.eulerAngles + reloadRotationOffset);
+        float halfTime = reloadTime / 2f;
+        float elapsed = 0f;
+
+        while (elapsed < halfTime)
         {
-            transform.localRotation = Quaternion.Slerp(originalRotation, targetRotation, elapsedTime / halfReloadTime);
-            elapsedTime += Time.deltaTime;
+            transform.localRotation = Quaternion.Slerp(originalRotation, targetRot, elapsed / halfTime);
+            elapsed += Time.deltaTime;
             yield return null;
         }
 
-        // --- Animate magazine detach/drop ---
+        // Magazine out/in animation
         if (magazine != null)
         {
-            float magAnimTime = 0.25f;
-            elapsedTime = 0f;
-            while (elapsedTime < magAnimTime)
+            float magTime = 0.25f;
+
+            // Drop
+            elapsed = 0f;
+            while (elapsed < magTime)
             {
-                magazine.localPosition = Vector3.Lerp(magOriginalPos, magOriginalPos + magDropOffset, elapsedTime / magAnimTime);
-                elapsedTime += Time.deltaTime;
+                magazine.localPosition = Vector3.Lerp(magOriginalPos, magOriginalPos + magDropOffset, elapsed / magTime);
+                elapsed += Time.deltaTime;
                 yield return null;
             }
 
-            // Simulate removing mag
             magazine.gameObject.SetActive(false);
             yield return new WaitForSeconds(0.2f);
 
-            // Simulate inserting mag
+            // Insert
             magazine.gameObject.SetActive(true);
-            elapsedTime = 0f;
-            while (elapsedTime < magAnimTime)
+            elapsed = 0f;
+            while (elapsed < magTime)
             {
-                magazine.localPosition = Vector3.Lerp(magOriginalPos + magDropOffset, magOriginalPos, elapsedTime / magAnimTime);
-                elapsedTime += Time.deltaTime;
+                magazine.localPosition = Vector3.Lerp(magOriginalPos + magDropOffset, magOriginalPos, elapsed / magTime);
+                elapsed += Time.deltaTime;
                 yield return null;
             }
 
             magazine.localPosition = magOriginalPos;
         }
 
-        // --- Rotate gun back up ---
-        elapsedTime = 0f;
-        while (elapsedTime < halfReloadTime)
+        // Gun up animation
+        elapsed = 0f;
+        while (elapsed < halfTime)
         {
-            transform.localRotation = Quaternion.Slerp(targetRotation, originalRotation, elapsedTime / halfReloadTime);
-            elapsedTime += Time.deltaTime;
+            transform.localRotation = Quaternion.Slerp(targetRot, originalRotation, elapsed / halfTime);
+            elapsed += Time.deltaTime;
             yield return null;
         }
 
@@ -193,8 +241,6 @@ public class Gun : NetworkBehaviour
     public void TryReload()
     {
         if (!isReloading && currentAmmo < magSize)
-        {
-            StartCoroutine(Reload());
-        }
+            StartCoroutine(ReloadRoutine());
     }
 }

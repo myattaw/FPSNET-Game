@@ -2,12 +2,14 @@ using System;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace UnityStandardAssets.Characters.FirstPerson
 {
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(NetworkTransform))]
+    [RequireComponent(typeof(AudioSource))]
     public class NetworkFirstPersonController : NetworkBehaviour
     {
         [Header("Movement Settings")]
@@ -19,7 +21,8 @@ namespace UnityStandardAssets.Characters.FirstPerson
         [SerializeField] private float m_StickToGroundForce = 10f;
         [SerializeField] private float m_GravityMultiplier = 2f;
         [SerializeField] public MouseLook m_MouseLook = new MouseLook();
-        
+        [SerializeField] private float m_StepInterval = 2f;
+
         [SerializeField] private NetworkTransform headNetworkTransform;
         [SerializeField] private Transform headTransform;
 
@@ -31,8 +34,18 @@ namespace UnityStandardAssets.Characters.FirstPerson
         private CollisionFlags m_CollisionFlags;
         private bool m_PreviouslyGrounded;
         private bool m_Jumping;
-        private float animSpeedSmooth = 0f; // Add this field at the top of the class
+        private float animSpeedSmooth = 0f;
 
+        // Step cycle for footsteps
+        private float m_StepCycle;
+        private float m_NextStep;
+
+        [Header("Audio")]
+        [SerializeField] private AudioClip[] m_FootstepSounds;    // an array of footstep sounds that will be randomly selected from.
+        [SerializeField] private AudioClip m_JumpSound;           // the sound played when character leaves the ground.
+        [SerializeField] private AudioClip m_LandSound;           // the sound played when character touches back on ground.
+
+        private AudioSource m_AudioSource;
 
         private Animator animator;
         private NetworkAnimator networkAnimator;
@@ -48,6 +61,9 @@ namespace UnityStandardAssets.Characters.FirstPerson
             animator = GetComponentInChildren<Animator>();
             networkAnimator = GetComponent<NetworkAnimator>();
 
+            if (m_AudioSource == null)
+                m_AudioSource = GetComponent<AudioSource>();
+
             if (networkAnimator != null && networkAnimator.Animator == null)
             {
                 networkAnimator.Animator = animator;
@@ -58,7 +74,11 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
             if (!IsOwner)
             {
-                // Disable only camera/audio, not this script yet
+                // Remote players: 3D spatial audio
+                if (m_AudioSource != null)
+                    m_AudioSource.spatialBlend = 1f;
+
+                // Disable only camera/audio listener, not this script
                 if (m_Camera != null)
                     m_Camera.enabled = false;
 
@@ -66,7 +86,6 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 if (listener != null)
                     listener.enabled = false;
 
-                // Do NOT disable this script — let remote players receive animation updates
                 return;
             }
 
@@ -86,6 +105,11 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 Health.Value = maxHealth;
             }
             Health.OnValueChanged += OnHealthChanged;
+        }
+
+        private void OnDestroy()
+        {
+            Health.OnValueChanged -= OnHealthChanged;
         }
 
         private void OnHealthChanged(int oldValue, int newValue)
@@ -111,13 +135,8 @@ namespace UnityStandardAssets.Characters.FirstPerson
         private void HandleDeath()
         {
             Debug.Log($"Player {OwnerClientId} died (server).");
-            
 
-            // Minimal death handling: disable movement for now.
-            // You can expand to respawn, ragdoll, etc.
-            // var controller = GetComponent<CharacterController>();
-            // if (controller != null) controller.enabled = false;
-            // Optionally disable visuals/collisions or schedule respawn.
+            // Minimal death handling: disable movement for now, etc.
         }
 
         private void Start()
@@ -132,6 +151,13 @@ namespace UnityStandardAssets.Characters.FirstPerson
             // Ensure animator is cached
             if (animator == null)
                 animator = GetComponentInChildren<Animator>();
+
+            // Step cycle init
+            m_StepCycle = 0f;
+            m_NextStep = m_StepInterval * 0.5f;
+
+            if (m_AudioSource == null)
+                m_AudioSource = GetComponent<AudioSource>();
         }
 
         private void Update()
@@ -143,10 +169,17 @@ namespace UnityStandardAssets.Characters.FirstPerson
             if (!m_Jump)
                 m_Jump = Input.GetButtonDown("Jump");
 
+            // Landing detection
             if (!m_PreviouslyGrounded && m_CharacterController.isGrounded)
             {
                 m_MoveDir.y = 0f;
                 m_Jumping = false;
+
+                // Notify server to play land sound
+                if (IsServer)
+                    PlayLandClientRpc();
+                else
+                    PlayLandServerRpc();
             }
 
             if (!m_CharacterController.isGrounded && !m_Jumping && m_PreviouslyGrounded)
@@ -162,7 +195,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
             // Don't run movement if controller is missing or disabled (prevents Move on inactive controller)
             if (m_CharacterController == null || !m_CharacterController.enabled)
                 return;
-            
+
             float speed;
             GetInput(out speed);
 
@@ -186,6 +219,12 @@ namespace UnityStandardAssets.Characters.FirstPerson
                     m_MoveDir.y = m_JumpSpeed;
                     m_Jump = false;
                     m_Jumping = true;
+
+                    // Notify server to play jump sound
+                    if (IsServer)
+                        PlayJumpClientRpc();
+                    else
+                        PlayJumpServerRpc();
                 }
             }
             else
@@ -197,8 +236,11 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
             m_CollisionFlags = m_CharacterController.Move(m_MoveDir * Time.fixedDeltaTime);
 
+            // Footstep timing (owner calculates, server broadcasts)
+            HandleFootsteps(speed);
+
             m_MouseLook.UpdateCursorLock();
-            
+
             // Only sync head rotation if both assigned
             if (headTransform != null && headNetworkTransform != null)
                 headNetworkTransform.transform.rotation = headTransform.rotation;
@@ -218,21 +260,100 @@ namespace UnityStandardAssets.Characters.FirstPerson
             animator.SetFloat("Speed", targetAnimSpeed);
             animator.SetFloat("Direction", direction);
             animator.SetBool("IsJumping", isJumping);
-            
+
             // Send correct value to network side
             UpdateAnimationServerRpc(targetAnimSpeed, direction, isJumping);
         }
 
-        
         [ServerRpc]
         private void UpdateAnimationServerRpc(float speed, float direction, bool isJumping)
         {
             if (animator == null) return;
-            
+
             animator.SetFloat("Speed", speed);
             animator.SetFloat("Direction", direction);
             animator.SetBool("IsJumping", isJumping);
         }
+
+        // ---------- AUDIO: SERVER / CLIENT RPCS ----------
+
+        // Called from owner client, executed on server, then broadcast
+        [ServerRpc]
+        private void PlayFootstepServerRpc(int index)
+        {
+            PlayFootstepClientRpc(index);
+        }
+
+        [ServerRpc]
+        private void PlayJumpServerRpc()
+        {
+            PlayJumpClientRpc();
+        }
+
+        [ServerRpc]
+        private void PlayLandServerRpc()
+        {
+            PlayLandClientRpc();
+        }
+
+        [ClientRpc]
+        private void PlayFootstepClientRpc(int index)
+        {
+            if (m_AudioSource == null || m_FootstepSounds == null || m_FootstepSounds.Length == 0) return;
+            if (index < 0 || index >= m_FootstepSounds.Length) return;
+
+            m_AudioSource.PlayOneShot(m_FootstepSounds[index]);
+        }
+
+        [ClientRpc]
+        private void PlayJumpClientRpc()
+        {
+            if (m_AudioSource == null || m_JumpSound == null) return;
+            m_AudioSource.PlayOneShot(m_JumpSound);
+        }
+
+        [ClientRpc]
+        private void PlayLandClientRpc()
+        {
+            if (m_AudioSource == null || m_LandSound == null) return;
+            m_AudioSource.PlayOneShot(m_LandSound);
+        }
+
+        // ---------- FOOTSTEP TIMING (OWNER-SIDE CALC) ----------
+
+        private void HandleFootsteps(float speed)
+        {
+            if (!m_CharacterController.isGrounded)
+                return;
+
+            if (m_CharacterController.velocity.sqrMagnitude <= 0.1f)
+                return;
+
+            if (m_Input.x == 0 && m_Input.y == 0)
+                return;
+
+            m_StepCycle += (m_CharacterController.velocity.magnitude +
+                            speed * (m_IsWalking ? 1f : m_RunstepLenghten)) *
+                           Time.fixedDeltaTime;
+
+            if (!(m_StepCycle > m_NextStep))
+                return;
+
+            m_NextStep = m_StepCycle + m_StepInterval;
+
+            if (m_FootstepSounds == null || m_FootstepSounds.Length == 0)
+                return;
+
+            int n = Random.Range(0, m_FootstepSounds.Length);
+
+            // Ask server to broadcast the footstep sound
+            if (IsServer)
+                PlayFootstepClientRpc(n);
+            else
+                PlayFootstepServerRpc(n);
+        }
+
+        // ---------- INPUT / VIEW / COLLISION ----------
 
         private void GetInput(out float speed)
         {
@@ -253,7 +374,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
         {
             m_MouseLook.LookRotation(transform, m_Camera.transform);
 
-            //TODO: Head rotation not working properly yet`
+            //TODO: Head rotation not working properly yet
             if (headTransform != null)
             {
                 Quaternion targetRotation = Quaternion.Euler(
@@ -264,7 +385,6 @@ namespace UnityStandardAssets.Characters.FirstPerson
                 headTransform.localRotation = targetRotation;
             }
         }
-
 
         private void OnControllerColliderHit(ControllerColliderHit hit)
         {
