@@ -134,19 +134,24 @@ public class Gun : NetworkBehaviour
     // --------------------------------------------------
 
     [ServerRpc]
-    private void SpawnBulletServerRpc(Vector3 spawnPos, Vector3 forwardDir)
+    private void SpawnBulletServerRpc(Vector3 spawnPos, Vector3 dir, ServerRpcParams rpcParams = default)
     {
-        Quaternion rotation = Quaternion.LookRotation(forwardDir, Vector3.up);
-        GameObject bulletObj = Instantiate(bulletPrefab, spawnPos, rotation);
+        Quaternion rot = Quaternion.LookRotation(dir, Vector3.up);
+        GameObject obj = Instantiate(bulletPrefab, spawnPos, rot);
 
-        NetworkObject netObj = bulletObj.GetComponent<NetworkObject>();
-        netObj.Spawn(true);
+        NetworkObject netObj = obj.GetComponent<NetworkObject>();
+        netObj.SpawnWithOwnership(rpcParams.Receive.SenderClientId);
 
-        // Set bullet velocity
-        if (bulletObj.TryGetComponent(out Bullet bulletScript))
+        Bullet b = obj.GetComponent<Bullet>();
+        Rigidbody rb = obj.GetComponent<Rigidbody>();
+
+        if (b != null)
+            b.ownerClientId = rpcParams.Receive.SenderClientId;
+
+        if (rb != null)
         {
-            if (bulletObj.TryGetComponent(out Rigidbody rb))
-                rb.linearVelocity = forwardDir * bulletScript.speed;
+            rb.isKinematic = false;               // REQUIRED
+            rb.linearVelocity = dir * b.speed;    // NEW PHYSICS STYLE
         }
     }
 
@@ -156,6 +161,9 @@ public class Gun : NetworkBehaviour
 
         if (casing.TryGetComponent(out Rigidbody rb))
         {
+            // ensure casing uses physics before assigning velocities
+            rb.isKinematic = false;
+
             Vector3 ejectDir = (casingEjectPoint.right * 0.8f) + (casingEjectPoint.up * 0.4f);
             rb.linearVelocity = ejectDir.normalized * Random.Range(2f, 6f);
 

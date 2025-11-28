@@ -2,6 +2,8 @@ using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using System.Collections;
+using FPSNet.Network;
 
 namespace UnityStandardAssets.Characters.FirstPerson
 {
@@ -54,6 +56,11 @@ namespace UnityStandardAssets.Characters.FirstPerson
         // Networked health value (clients will see updates)
         public NetworkVariable<int> Health = new NetworkVariable<int>(100);
 
+        // New: track whether player is currently dead (server authoritative)
+        public NetworkVariable<bool> IsDead = new NetworkVariable<bool>(false);
+
+        private float respawnDelay = 0f; // set to 0 for instant-ish respawn (one frame to sync)
+
         public override void OnNetworkSpawn()
         {
             // Assign animator and network animator immediately
@@ -98,10 +105,10 @@ namespace UnityStandardAssets.Characters.FirstPerson
                     listener.enabled = true;
             }
 
-            // Initialize health on server and subscribe to changes
             if (IsServer)
             {
                 Health.Value = maxHealth;
+                IsDead.Value = false;
             }
 
             // subscribe safely
@@ -136,24 +143,79 @@ namespace UnityStandardAssets.Characters.FirstPerson
         }
 
         // Called by server-side code (e.g. Bullet on server) to apply damage
-        public void ApplyDamage(int amount)
+        // Returns true if this call caused the player's death (server only)
+        public bool ApplyDamage(int amount, ulong attackerClientId = ulong.MaxValue)
         {
-            if (!IsServer) return; // must be executed on server
+            if (!IsServer) return false; // must be executed on server
+
+            // If already dead, ignore further damage
+            if (IsDead.Value) return false;
 
             int newHealth = Mathf.Max(0, Health.Value - amount);
             Health.Value = newHealth;
 
             if (newHealth <= 0)
             {
-                HandleDeath();
+                // mark dead immediately so subsequent collisions don't re-enter death logic
+                IsDead.Value = true;
+
+                // Update stats exactly once here (server)
+                var victimStats = GetComponent<PlayerStats>();
+                if (victimStats != null)
+                    victimStats.Deaths.Value++;
+
+                if (attackerClientId != ulong.MaxValue)
+                {
+                    var attackerStats = FPSNet.Network.PlayerStats.AllPlayers.Find(p => p.OwnerClientId == attackerClientId);
+                    if (attackerStats != null)
+                        attackerStats.Kills.Value++;
+                }
+
+                HandleDeath(attackerClientId);
+                return true;
             }
+            return false;
         }
 
-        private void HandleDeath()
+        private void HandleDeath(ulong attackerClientId)
         {
+            // Log once (IsDead already set in ApplyDamage)
             Debug.Log($"Player {OwnerClientId} died (server).");
 
-            // Minimal death handling: disable movement for now, etc.
+            // Start server-side respawn routine
+            StartCoroutine(RespawnCoroutine(attackerClientId));
+        }
+
+        private IEnumerator RespawnCoroutine(ulong attacker)
+        {
+            if (m_CharacterController == null)
+                m_CharacterController = GetComponent<CharacterController>();
+
+            m_CharacterController.enabled = false;
+
+            yield return null; // allow sync
+
+            // Pick spawn point
+            GameObject[] spawns = GameObject.FindGameObjectsWithTag("SpawnPoint");
+            Vector3 pos = Vector3.up * 2f;
+            Quaternion rot = Quaternion.identity;
+
+            if (spawns.Length > 0)
+            {
+                var chosen = spawns[Random.Range(0, spawns.Length)];
+                pos = chosen.transform.position;
+                rot = chosen.transform.rotation;
+            }
+
+            // Tell ONLY the owner client to teleport itself
+            TeleportClientRpc(pos, rot, OwnerClientId);
+
+            // Reset server-side stats
+            Health.Value = maxHealth;
+            IsDead.Value = false;
+
+            yield return null;
+            m_CharacterController.enabled = true;
         }
 
         private void Start()
@@ -313,6 +375,26 @@ namespace UnityStandardAssets.Characters.FirstPerson
             PlayLandClientRpc();
         }
 
+        // TELEPORT RPC → only owner applies it
+        [ClientRpc]
+        private void TeleportClientRpc(Vector3 pos, Quaternion rot, ulong targetClientId)
+        {
+            if (!IsOwner) return;
+
+            StartCoroutine(DoTeleport(pos, rot));
+        }
+
+        private IEnumerator DoTeleport(Vector3 pos, Quaternion rot)
+        {
+            m_CharacterController.enabled = false;
+            yield return null;
+
+            transform.SetPositionAndRotation(pos, rot);
+
+            yield return null;
+            m_CharacterController.enabled = true;
+        }
+        
         [ClientRpc]
         private void PlayFootstepClientRpc(int index)
         {

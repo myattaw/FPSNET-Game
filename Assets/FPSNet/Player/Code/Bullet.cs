@@ -1,27 +1,39 @@
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
-using UnityStandardAssets.Characters.FirstPerson; // for NetworkFirstPersonController
+using UnityStandardAssets.Characters.FirstPerson;
 
 public class Bullet : NetworkBehaviour
 {
     public float speed = 150f;
     public float lifeTime = 3f;
-    public int damage = 25; // new: how much damage this bullet deals
+    public int damage = 25;
+
+    public ulong ownerClientId = ulong.MaxValue;
 
     private Rigidbody rb;
+    private Collider col;
 
     public override void OnNetworkSpawn()
     {
         rb = GetComponent<Rigidbody>();
-        rb.linearVelocity = transform.forward * speed; // fixed property
+        col = GetComponent<Collider>();
+
+        // New physics: MUST disable kinematic before setting linearVelocity
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.linearVelocity = transform.forward * speed;
+        }
 
         if (IsServer)
             StartCoroutine(DespawnAfterSeconds(lifeTime));
     }
 
-    private System.Collections.IEnumerator DespawnAfterSeconds(float secs)
+    private IEnumerator DespawnAfterSeconds(float secs)
     {
         yield return new WaitForSeconds(secs);
+
         if (NetworkObject != null && NetworkObject.IsSpawned)
             NetworkObject.Despawn();
         else
@@ -31,15 +43,21 @@ public class Bullet : NetworkBehaviour
     private void OnCollisionEnter(Collision other)
     {
         if (!IsServer) return;
-        // Try to find a player component on the hit object (or its parents)
-        var hitPlayer = other.collider.GetComponentInParent<NetworkFirstPersonController>();
-        if (hitPlayer != null)
+
+        if (col != null) col.enabled = false;
+
+        if (rb != null)
         {
-            // Apply damage server-side directly
-            hitPlayer.ApplyDamage(damage);
+            rb.isKinematic = true;
+            // rb.linearVelocity = Vector3.zero;
         }
 
-        // Despawn the bullet over the network
+        var hit = other.collider.GetComponentInParent<NetworkFirstPersonController>();
+        if (hit != null && hit.OwnerClientId != ownerClientId)
+        {
+            hit.ApplyDamage(damage, ownerClientId);
+        }
+
         if (NetworkObject != null && NetworkObject.IsSpawned)
             NetworkObject.Despawn();
         else
