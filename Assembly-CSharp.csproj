@@ -50,8 +50,11 @@
     <Compile Include="Assets\FPSNet\UI\HurtEffectFade.cs" />
     <Compile Include="Assets\FPSNet\Network\NetworkManagerUI.cs" />
     <Compile Include="Assets\FPSNet\Scripts\AudioManager.cs" />
+    <Compile Include="Assets\FPSNet\UI\Scoreboard\ScoreboardToggle.cs" />
+    <Compile Include="Assets\FPSNet\UI\Scoreboard\ScoreboardUI.cs" />
     <Compile Include="Assets\FPSNet\Player\PlayerNetwork.cs" />
     <Compile Include="Assets\FPSNet\UI\UIManager.cs" />
+    <Compile Include="Assets\FPSNet\Network\PlayerStats.cs" />
     <Compile Include="Assets\FPSNet\Player\Code\PlayerShooting.cs" />
     <Compile Include="Assets\FPSNet\Player\MouseLook.cs" />
     <Compile Include="Assets\FPSNet\Player\Code\Gun.cs" />
