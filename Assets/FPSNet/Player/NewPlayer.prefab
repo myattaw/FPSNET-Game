@@ -565,6 +565,14 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8300000, guid: 1fe5c2e1733f354428fe88c1a7cbafe4, type: 3}
     - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: tracerSpeed
+      value: 500
+      objectReference: {fileID: 0}
+    - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: bulletDamage
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
       propertyPath: bulletPrefab
       value: 
       objectReference: {fileID: 6342515338664354458, guid: dedcc8f881cb15640a5f71f8236e99f9, type: 3}
@@ -584,6 +592,10 @@ PrefabInstance:
       propertyPath: gunAudioSource
       value: 
       objectReference: {fileID: 4478985781184142548}
+    - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: tracerLifeTime
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
       propertyPath: casingEjectPoint
       value: 

@@ -4,6 +4,7 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 using System.Collections;
 using FPSNet.Network;
+using FPSNet.Network.KillFeed;
 
 namespace UnityStandardAssets.Characters.FirstPerson
 {
@@ -182,10 +183,31 @@ namespace UnityStandardAssets.Characters.FirstPerson
             // Log once (IsDead already set in ApplyDamage)
             Debug.Log($"Player {OwnerClientId} died (server).");
 
-            // Start server-side respawn routine
+            // Resolve attacker name (world or player)
+            string attackerName = "World";
+            if (attackerClientId != ulong.MaxValue)
+            {
+                var attackerStats = FPSNet.Network.PlayerStats.AllPlayers.Find(p => p.OwnerClientId == attackerClientId);
+                if (attackerStats != null)
+                    attackerName = attackerStats.PlayerName.Value.ToString();
+                else
+                    attackerName = "Player " + attackerClientId;
+            }
+
+            // Resolve victim name
+            var victimStats = GetComponent<FPSNet.Network.PlayerStats>();
+            string victimName = victimStats != null ? victimStats.PlayerName.Value.ToString() : "Player " + OwnerClientId;
+
+            // Broadcast to all clients via KillFeedManager (server-only)
+            if (KillFeedManager.Instance != null && IsServer)
+            {
+                KillFeedManager.Instance.BroadcastKill(attackerName, victimName);
+            }
+
+            // Continue with respawn routine
             StartCoroutine(RespawnCoroutine(attackerClientId));
         }
-
+        
         private IEnumerator RespawnCoroutine(ulong attacker)
         {
             if (m_CharacterController == null)
