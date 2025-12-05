@@ -27,7 +27,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
         [SerializeField] private NetworkTransform headNetworkTransform;
         [SerializeField] private Transform headTransform;
-
+        
         private Camera m_Camera;
         private bool m_Jump;
         private Vector2 m_Input;
@@ -46,7 +46,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
         [SerializeField] private AudioClip[] m_FootstepSounds;    // an array of footstep sounds that will be randomly selected from.
         [SerializeField] private AudioClip m_JumpSound;           // the sound played when character leaves the ground.
         [SerializeField] private AudioClip m_LandSound;           // the sound played when character touches back on ground.
-
+        
         private AudioSource m_AudioSource;
 
         private Animator animator;
@@ -67,7 +67,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
             // Assign animator and network animator immediately
             animator = GetComponentInChildren<Animator>();
             networkAnimator = GetComponent<NetworkAnimator>();
-
+            
             if (m_AudioSource == null)
                 m_AudioSource = GetComponent<AudioSource>();
 
