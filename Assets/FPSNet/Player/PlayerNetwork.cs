@@ -78,9 +78,17 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
             // Find this player's camera
             m_Camera = GetComponentInChildren<Camera>(true); // include inactive
-
+           
+            
+            GameObject mainMenu = GameObject.Find("MainMenu");
+            if (mainMenu != null)
+            {
+                mainMenu.SetActive(false);
+            }
+            
             if (!IsOwner)
             {
+
                 // Remote players: 3D spatial audio
                 if (m_AudioSource != null)
                     m_AudioSource.spatialBlend = 1f;
