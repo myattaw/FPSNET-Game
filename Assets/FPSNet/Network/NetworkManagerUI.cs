@@ -10,11 +10,23 @@ namespace FPSNet.Network
         [SerializeField] private Button hostButton;
         [SerializeField] private Button clientButton;
 
+        public GameObject serverBrowserPanel;
+        public GameObject optionsPanel;
+        
         private void Awake()
         {
-            serverButton.onClick.AddListener((() => { NetworkManager.Singleton.StartServer(); }));
+            serverButton.onClick.AddListener((() =>
+            {
+                NetworkManager.Singleton.StartServer();
+            }));
 
-            hostButton.onClick.AddListener((() => { NetworkManager.Singleton.StartHost(); }));
+            hostButton.onClick.AddListener((() =>
+            {
+                Debug.Log("Starting Host...");
+                // NetworkManager.Singleton.StartHost();
+                serverBrowserPanel.SetActive(true);
+                optionsPanel.SetActive(false);
+            }));
 
             clientButton.onClick.AddListener((() => { NetworkManager.Singleton.StartClient(); }));
         }

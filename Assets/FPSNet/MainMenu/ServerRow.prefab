@@ -487,6 +487,7 @@ MonoBehaviour:
   modeText: {fileID: 3103126132379605877}
   playersText: {fileID: 4390818663991506596}
   pingText: {fileID: 565693124482079980}
+  connectButton: {fileID: 513000298195858635}
 --- !u!1 &3180532783785052195
 GameObject:
   m_ObjectHideFlags: 0

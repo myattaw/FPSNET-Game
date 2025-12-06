@@ -52,7 +52,6 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\EnvMapAnimator.cs" />
     <Compile Include="Assets\FPSNet\Player\Code\VisualBullet.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextSelector_A.cs" />
-    <Compile Include="Assets\FPSNet\MainMenu\MenuManager.cs" />
     <Compile Include="Assets\FPSNet\Network\KillFeed\KillFeedAnimation.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark02.cs" />
     <Compile Include="Assets\FPSNet\UI\HurtEffectFade.cs" />
@@ -83,6 +82,7 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark01.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TextMeshSpawner.cs" />
     <Compile Include="Assets\FPSNet\UI\UIManager.cs" />
+    <Compile Include="Assets\FPSNet\Network\HeadlessServerStarter.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\CameraController.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark03.cs" />
     <Compile Include="Assets\FPSNet\Network\PlayerStats.cs" />
@@ -1034,6 +1034,9 @@
     <Reference Include="com.unity.multiplayer.tools.window">
       <HintPath>C:\Users\Michael\Documents\Unity Projects\FPSNET-Game\Library\ScriptAssemblies\com.unity.multiplayer.tools.window.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.Toolchain.Win-x86_64-Linux-x86_64">
+      <HintPath>C:\Users\Michael\Documents\Unity Projects\FPSNET-Game\Library\ScriptAssemblies\Unity.Toolchain.Win-x86_64-Linux-x86_64.dll</HintPath>
+    </Reference>
     <Reference Include="Analytics">
       <HintPath>C:\Users\Michael\Documents\Unity Projects\FPSNET-Game\Library\ScriptAssemblies\Analytics.dll</HintPath>
     </Reference>
@@ -1054,6 +1057,9 @@
     </Reference>
     <Reference Include="Unity.Formats.Fbx.Runtime">
       <HintPath>C:\Users\Michael\Documents\Unity Projects\FPSNET-Game\Library\ScriptAssemblies\Unity.Formats.Fbx.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Sysroot.Linux_x86_64">
+      <HintPath>C:\Users\Michael\Documents\Unity Projects\FPSNET-Game\Library\ScriptAssemblies\Unity.Sysroot.Linux_x86_64.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Multiplayer.Tools.NetVis.Configuration">
       <HintPath>C:\Users\Michael\Documents\Unity Projects\FPSNET-Game\Library\ScriptAssemblies\Unity.Multiplayer.Tools.NetVis.Configuration.dll</HintPath>
@@ -1099,6 +1105,9 @@
     </Reference>
     <Reference Include="Unity.InputSystem">
       <HintPath>C:\Users\Michael\Documents\Unity Projects\FPSNET-Game\Library\ScriptAssemblies\Unity.InputSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.SysrootPackage.Editor">
+      <HintPath>C:\Users\Michael\Documents\Unity Projects\FPSNET-Game\Library\ScriptAssemblies\Unity.SysrootPackage.Editor.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
