@@ -80,11 +80,9 @@ namespace UnityStandardAssets.Characters.FirstPerson
             m_Camera = GetComponentInChildren<Camera>(true); // include inactive
            
             
-            GameObject mainMenu = GameObject.Find("MainMenu");
-            if (mainMenu != null)
-            {
+            var mainMenu = GameObject.Find("MainMenu");
+            if (mainMenu != null) 
                 mainMenu.SetActive(false);
-            }
             
             if (!IsOwner)
             {
