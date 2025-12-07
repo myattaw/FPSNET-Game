@@ -1,10 +1,10 @@
+using System.Collections;
+using FPSNet.Network;
+using FPSNet.Network.KillFeed;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
 using Random = UnityEngine.Random;
-using System.Collections;
-using FPSNet.Network;
-using FPSNet.Network.KillFeed;
 
 namespace UnityStandardAssets.Characters.FirstPerson
 {
@@ -173,7 +173,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
                 if (attackerClientId != ulong.MaxValue)
                 {
-                    var attackerStats = FPSNet.Network.PlayerStats.AllPlayers.Find(p => p.OwnerClientId == attackerClientId);
+                    var attackerStats = PlayerStats.AllPlayers.Find(p => p.OwnerClientId == attackerClientId);
                     if (attackerStats != null)
                         attackerStats.Kills.Value++;
                 }
@@ -193,7 +193,7 @@ namespace UnityStandardAssets.Characters.FirstPerson
             string attackerName = "World";
             if (attackerClientId != ulong.MaxValue)
             {
-                var attackerStats = FPSNet.Network.PlayerStats.AllPlayers.Find(p => p.OwnerClientId == attackerClientId);
+                var attackerStats = PlayerStats.AllPlayers.Find(p => p.OwnerClientId == attackerClientId);
                 if (attackerStats != null)
                     attackerName = attackerStats.PlayerName.Value.ToString();
                 else
@@ -201,15 +201,15 @@ namespace UnityStandardAssets.Characters.FirstPerson
             }
 
             // Resolve victim name
-            var victimStats = GetComponent<FPSNet.Network.PlayerStats>();
+            var victimStats = GetComponent<PlayerStats>();
             string victimName = victimStats != null ? victimStats.PlayerName.Value.ToString() : "Player " + OwnerClientId;
 
             // Broadcast to all clients via KillFeedManager (server-only)
-            if (KillFeedManager.Instance != null && IsServer)
+            if (IsServer && KillFeedNetwork.Instance != null)
             {
-                KillFeedManager.Instance.BroadcastKill(attackerName, victimName);
+                KillFeedNetwork.Instance.BroadcastKill(attackerName, victimName);
             }
-
+            
             // Continue with respawn routine
             StartCoroutine(RespawnCoroutine(attackerClientId));
         }

@@ -96,6 +96,7 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TeleType.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextEventCheck.cs" />
     <Compile Include="Assets\FPSNet\Player\MouseLook.cs" />
+    <Compile Include="Assets\FPSNet\Network\KillFeed\KillFeedNetwork.cs" />
     <Compile Include="Assets\FPSNet\Player\Code\Gun.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TextMeshProFloatingText.cs" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
