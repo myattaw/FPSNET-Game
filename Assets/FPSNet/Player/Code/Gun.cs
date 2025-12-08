@@ -28,6 +28,7 @@ public class Gun : NetworkBehaviour
     public AudioSource gunAudioSource;
     public AudioClip gunshotSound;
     public AudioClip reloadSound;
+    public AudioClip playerHitSound;
 
     private int currentAmmo;
     private bool isReloading = false;
@@ -227,6 +228,11 @@ public class Gun : NetworkBehaviour
 
         GameObject vis = Instantiate(prefab, spawnPos, Quaternion.LookRotation(dir, Vector3.up));
 
+        if (didHit && playerHitSound != null)
+        {
+            AudioSource.PlayClipAtPoint(playerHitSound, hitPoint);
+        }
+        
         // --- ALWAYS ensure VisualBullet exists ---
         VisualBullet vb = vis.GetComponent<VisualBullet>();
         if (vb == null)

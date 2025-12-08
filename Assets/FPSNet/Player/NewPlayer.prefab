@@ -344,6 +344,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 8bc94ec6ed537e743b481638bdcd503d, type: 3}
   m_JumpSound: {fileID: 8300000, guid: 5897aeed9b676024fbb8c694b421a861, type: 3}
   m_LandSound: {fileID: 8300000, guid: 3b09d59f4499d45428baa7a21e954296, type: 3}
+  m_HitMarkerSound: {fileID: 8300000, guid: 62cb8deaa6821a1499105f7a74b91cce, type: 3}
   maxHealth: 100
   Health:
     m_InternalValue: 100
@@ -592,6 +593,10 @@ PrefabInstance:
       propertyPath: gunAudioSource
       value: 
       objectReference: {fileID: 4478985781184142548}
+    - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
+      propertyPath: playerHitSound
+      value: 
+      objectReference: {fileID: 8300000, guid: 5c3fc1871b9da954284bf9b036518edb, type: 3}
     - target: {fileID: 1987630762598544676, guid: 260ff1508afea5241b6511d8fbe92201, type: 3}
       propertyPath: tracerLifeTime
       value: 2

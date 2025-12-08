@@ -47,6 +47,8 @@ namespace UnityStandardAssets.Characters.FirstPerson
         [SerializeField] private AudioClip m_JumpSound;           // the sound played when character leaves the ground.
         [SerializeField] private AudioClip m_LandSound;           // the sound played when character touches back on ground.
         
+        public AudioClip m_HitMarkerSound;
+        
         private AudioSource m_AudioSource;
 
         private Animator animator;
@@ -161,6 +163,23 @@ namespace UnityStandardAssets.Characters.FirstPerson
             int newHealth = Mathf.Max(0, Health.Value - amount);
             Health.Value = newHealth;
 
+            if (attackerClientId != ulong.MaxValue)
+            {
+                if (NetworkManager.Singleton.ConnectedClients.TryGetValue(attackerClientId, out var attackerClient))
+                {
+                    var attackerObj = attackerClient.PlayerObject;
+                    if (attackerObj != null)
+                    {
+                        var shooter = attackerObj.GetComponent<NetworkFirstPersonController>();
+                        if (shooter != null)
+                        {
+                            // Invoke ClientRpc on the shooter's NetworkBehaviour instance; the ClientRpc will only play locally due to IsOwner check.
+                            shooter.PlayHitmarkerClientRpc();
+                        }
+                    }
+                }
+            }
+            
             if (newHealth <= 0)
             {
                 // mark dead immediately so subsequent collisions don't re-enter death logic
@@ -421,6 +440,25 @@ namespace UnityStandardAssets.Characters.FirstPerson
 
             yield return null;
             m_CharacterController.enabled = true;
+        }
+        
+        [ClientRpc]
+        private void PlayHitmarkerClientRpc()
+        {
+            // Only play on the owning client (the shooter)
+            if (!IsOwner) return;
+
+            if (m_AudioSource == null)
+                m_AudioSource = GetComponent<AudioSource>();
+
+            if (m_AudioSource != null && m_HitMarkerSound != null)
+            {
+                m_AudioSource.PlayOneShot(m_HitMarkerSound);
+            }
+            else if (m_HitMarkerSound != null)
+            {
+                AudioSource.PlayClipAtPoint(m_HitMarkerSound, transform.position);
+            }
         }
         
         [ClientRpc]

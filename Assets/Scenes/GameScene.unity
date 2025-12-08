@@ -4190,7 +4190,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72755524c5df4728b4f760e2a43989fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
   killFeedItemPrefab: {fileID: 4049262359242263386, guid: b69ee8355ecbd3d4ca8b884e68b172d0, type: 3}
   killFeedHolder: {fileID: 1522578036}
 --- !u!1660057539 &9223372036854775807
