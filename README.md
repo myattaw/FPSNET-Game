@@ -17,6 +17,8 @@ This project demonstrates:
 
 This is not a finished game, but a foundation for experimenting with multiplayer FPS architecture in Unity.
 
+![Gameplay Screenshot](Screenshots/gameplay.png)
+
 ---
 
 ## Features
